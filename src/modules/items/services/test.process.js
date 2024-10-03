@@ -36,17 +36,15 @@ function processSlice(slice) {
   slice.forEach((item) => {
     const key = item.steamMarketHashName;
 
-    // Initialize if not already present
     if (!result[key]) {
       result[key] = {
-        min_auto_delivery_price: Infinity,
-        min_manual_price: Infinity,
+        min_auto_delivery_price: 0,
+        min_manual_price: 0,
         auto_delivery_cnt: 0,
         manual_delivery_cnt: 0,
       };
     }
 
-    // Check for manual delivery
     if (item.delivery === 1) {
       result[key].min_manual_price = Math.min(
         result[key].min_manual_price,
@@ -55,7 +53,6 @@ function processSlice(slice) {
       result[key].manual_delivery_cnt += 1;
     }
 
-    // Check for auto delivery
     if (item.delivery === 2) {
       result[key].min_auto_delivery_price = Math.min(
         result[key].min_auto_delivery_price,
@@ -70,7 +67,7 @@ function processSlice(slice) {
 
 
 async function processDataInChunks(data) {
-  const chunkSize = 100000; // Process data in chunks of 100,000 items
+  const chunkSize = 100000; 
   const slices = sliceArray(data, chunkSize);
   const finalResult = {};
 
@@ -82,7 +79,6 @@ async function processDataInChunks(data) {
       if (!finalResult[key]) {
         finalResult[key] = result[key];
       } else {
-        // Aggregate and find the minimum prices
         finalResult[key].min_auto_delivery_price = Math.min(
           finalResult[key].min_auto_delivery_price,
           result[key].min_auto_delivery_price
@@ -91,14 +87,12 @@ async function processDataInChunks(data) {
           finalResult[key].min_manual_price,
           result[key].min_manual_price
         );
-        // Count auto/manual deliveries
         finalResult[key].auto_delivery_cnt += result[key].auto_delivery_cnt;
         finalResult[key].manual_delivery_cnt += result[key].manual_delivery_cnt;
       }
     }
   }
 
-  // Ensure prices that remained Infinity are replaced with 0 (no entries found)
   Object.keys(finalResult).forEach((key) => {
     if (finalResult[key].min_auto_delivery_price === Infinity) {
       finalResult[key].min_auto_delivery_price = 0;
