@@ -1,7 +1,8 @@
 const { parentPort } = require('worker_threads');
 const axios = require('axios');
 const path = require('path');
-const { readFileSync } = require('fs');
+const { readFileSync, createReadStream } = require('fs');
+const { createInterface } = require('readline');
 
 // ---------------------------------------------------------------------------------------------
 
@@ -13,17 +14,68 @@ function sliceArray(data, chunkSize) {
   return slices;
 }
 
+async function readFileWithFakes() {
+  try {
+    const filePath = path.join(__dirname, 'generatedItems.json');
+    const fileStream = createReadStream(filePath, { encoding: 'utf-8' });
+
+    const rl = createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    });
+
+    let jsonData = '';
+
+    for await (const line of rl) {
+      jsonData += line;
+    }
+    return JSON.parse(jsonData);
+  } catch (error) {
+    console.log({ error });
+    return null;
+  }
+}
+
+async function fetchFromExternalService() {
+  try {
+    const response = await axios({
+      method: 'get',
+      // url: 'https://rs.ok-skins.com/sell/full/730/2G8f5A_usdt.json?Expires=1727957290&OSSAccessKeyId=LTAI5tDg2x1cneB9QAAst1ck&Signature=C1ueKmYikys%2FLaBBB8vnJrXQGH0%3D',
+      url: 'http://localhost:2233/api/items/fakes',
+      responseType: 'stream'
+    });
+
+    let data = '';
+    const stream = response.data;
+    let rawData = ''; // Для накопления данных
+
+    return new Promise((resolve, reject) => {
+      stream.on('data', (chunk) => {
+        rawData += chunk.toString();
+        data += chunk;
+      });
+
+      stream.on('end', () => {
+        resolve(JSON.parse(data));
+      });
+
+      stream.on('error', (err) => {
+        reject(err);
+      });
+    });
+  } catch (err) {
+    console.error('Ошибка при запросе:', err);
+  }
+}
+
 // ---------------------------------------------------------------------------------------------
 
 async function fetchExternalData() {
   try {
-    // const filePath = path.join(__dirname, 'generatedItems.json');
-    // const fileContent = readFileSync(filePath, 'utf-8');
-    // await new Promise((res,rej) => setTimeout(res, 3000))
-    // return JSON.parse(fileContent);
-    const url =
-      'https://rs.ok-skins.com/sell/full/730/2G8f5A_usdt.json?Expires=1727957290&OSSAccessKeyId=LTAI5tDg2x1cneB9QAAst1ck&Signature=C1ueKmYikys%2FLaBBB8vnJrXQGH0%3D';
-    const { data } = await axios.get(url);
+    let data = [];
+
+    // data = await readFileWithFakes();
+    data = await fetchFromExternalService();
     return data;
   } catch (error) {
     throw new Error('Error fetching external data: ' + error.message);
@@ -41,7 +93,7 @@ function processSlice(slice) {
         min_auto_delivery_price: 0,
         min_manual_price: 0,
         auto_delivery_cnt: 0,
-        manual_delivery_cnt: 0,
+        manual_delivery_cnt: 0
       };
     }
 
@@ -65,12 +117,10 @@ function processSlice(slice) {
   return result;
 }
 
-
 async function processDataInChunks(data) {
-  const chunkSize = 100000; 
+  const chunkSize = 100000;
   const slices = sliceArray(data, chunkSize);
   const finalResult = {};
-
 
   for (let slice of slices) {
     const result = processSlice(slice);

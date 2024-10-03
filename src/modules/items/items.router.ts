@@ -1,12 +1,18 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { GetManyItemsSchema, IItemsQuery } from './schemas/items.schema';
 import ItemsService from './services/items.service';
+const path = require('path');
 
 export function InitItemsRouter(
   app: FastifyInstance,
   itemsService: ItemsService
 ) {
   // ------------------------------------------------------------------------------------
+
+  app.get('/fakes', async (request: FastifyRequest, reply: FastifyReply) => {
+    const items = await itemsService.getFakes();
+    return reply.send(items);
+  });
 
   app.get('/many/2', async (request: FastifyRequest, reply: FastifyReply) => {
     const items = await itemsService.getItems2();

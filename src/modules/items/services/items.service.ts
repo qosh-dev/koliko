@@ -1,4 +1,7 @@
 import { FastifyRedis } from '@fastify/redis';
+import { createReadStream } from 'fs';
+import * as path from 'path';
+import { createInterface } from 'readline';
 import { CurrencyEnum } from '../types/currency.enum';
 import { IItem } from '../types/item';
 import { AppId } from '../types/types';
@@ -39,7 +42,6 @@ export default class ItemsService {
     const cachedItems = await this.redisClient.get(cacheKey);
 
     if (cachedItems) {
-      console.log(`Using cached data for key: ${cacheKey}`);
       return JSON.parse(cachedItems);
     }
 
@@ -50,7 +52,37 @@ export default class ItemsService {
       'EX',
       this.CACHE_TTL
     );
-    console.log(`Fetched and cached data for key: ${cacheKey}`);
     return items;
   }
+
+
+  async getFakes(){
+    // return [
+    //   {
+    //     id: 1,
+    //     price: 1,
+    //     steamId: 4,
+    //     assetId: 3,
+    //     classId: 2,
+    //     instanceId: 1,
+    //     delivery: 1,
+    //     steamMarketHashName: "asdasdas"
+    //   }
+    // ]
+    const filePath = path.join(__dirname, 'generatedItems.json');
+    const fileStream = createReadStream(filePath, { encoding: 'utf-8' });
+
+    const rl = createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    });
+
+    let jsonData = '';
+
+    for await (const line of rl) {
+      jsonData += line;
+    }
+    return JSON.parse(jsonData);
+  }
 }
+
