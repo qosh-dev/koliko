@@ -36,8 +36,8 @@ function processSlice(slice) {
 
     if (!result[key]) {
       result[key] = {
-        min_auto_delivery_price: Infinity,
-        min_manual_price: Infinity,
+        min_auto_delivery_price: 0,
+        min_manual_price: 0,
         auto_delivery_cnt: 0,
         manual_delivery_cnt: 0
       };
@@ -57,15 +57,6 @@ function processSlice(slice) {
       result[key].auto_delivery_cnt += 1;
     }
   });
-
-  for (let key in result) {
-    if (result[key].min_auto_delivery_price === Infinity) {
-      result[key].min_auto_delivery_price = 0;
-    }
-    if (result[key].min_manual_price === Infinity) {
-      result[key].min_manual_price = 0;
-    }
-  }
 
   return result;
 }
