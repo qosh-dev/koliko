@@ -1,88 +1,65 @@
-const { parentPort } = require('worker_threads');
-const axios = require('axios');
-const path = require('path');
-const { readFileSync, createReadStream } = require('fs');
-const { createInterface } = require('readline');
+let { parentPort } = require('worker_threads');
+let axios = require('axios');
+let path = require('path');
+let { createReadStream, writeFileSync } = require('fs');
 
-// ---------------------------------------------------------------------------------------------
-
-function sliceArray(data, chunkSize) {
-  const slices = [];
-  for (let i = 0; i < data.length; i += chunkSize) {
-    slices.push(data.slice(i, i + chunkSize));
-  }
-  return slices;
-}
-
-async function readFileWithFakes() {
-  try {
-    const filePath = path.join(__dirname, 'generatedItems.json');
-    const fileStream = createReadStream(filePath, { encoding: 'utf-8' });
-
-    const rl = createInterface({
-      input: fileStream,
-      crlfDelay: Infinity
-    });
-
-    let jsonData = '';
-
-    for await (const line of rl) {
-      jsonData += line;
-    }
-    return JSON.parse(jsonData);
-  } catch (error) {
-    console.log({ error });
-    return null;
-  }
-}
-
-async function fetchFromExternalService() {
-  return new Promise(async (resolve, reject) => {
-    const response = await axios({
-      method: 'get',
-      // url: 'https://rs.ok-skins.com/sell/full/730/2G8f5A_usdt.json?Expires=1727957290&OSSAccessKeyId=LTAI5tDg2x1cneB9QAAst1ck&Signature=C1ueKmYikys%2FLaBBB8vnJrXQGH0%3D',
-      url: 'http://localhost:2233/api/items/fakes',
-      responseType: 'stream'
-    });
-
-    let data = '';
-    const stream = response.data;
-    let rawData = '';
-
+function objectArrayFromStream(stream, callback) {
+  return new Promise((res, rej) => {
+    let tempStr = '';
     stream.on('data', (chunk) => {
-      rawData += chunk.toString();
-      data += chunk;
+      let str = chunk.toString().replace('\n', '').trim();
+
+      tempStr += str.startsWith('[') ? str.slice(1, -1) : str;
+      tempStr = tempStr.startsWith(',') ? tempStr.slice(1) : tempStr;
+
+      let lastIndexOfClose = tempStr.lastIndexOf('}');
+
+      if (lastIndexOfClose !== -1) {
+        let readyChunk = tempStr.slice(0, lastIndexOfClose + 1);
+        tempStr = tempStr.slice(lastIndexOfClose + 1);
+        try {
+          const parsedItems = JSON.parse(`[${readyChunk}]`);
+          callback(parsedItems);
+        } catch (err) {
+          rej(err);
+        }
+      }
     });
 
-    stream.on('end', () => {
-      resolve(JSON.parse(data));
-    });
-
-    stream.on('error', (err) => {
-      reject(err);
-    });
+    stream.on('error', rej);
+    stream.on('end', res);
   });
 }
 
 // ---------------------------------------------------------------------------------------------
 
-async function fetchExternalData() {
+async function readFileWithFakes() {
   try {
-    let data = [];
-
-    // data = await readFileWithFakes();
-    data = await fetchFromExternalService();
-    return data;
+    let filePath = path.join(__dirname, 'generatedItems.json');
+    return createReadStream(filePath, { encoding: 'utf-8' });
   } catch (error) {
-    throw new Error('Error fetching external data: ' + error.message);
+    throw new Error(error);
   }
 }
 
-function processSlice(slice) {
-  const result = {};
+async function fetchFromExternalServiceByChunks() {
+  try {
+    const response = await axios({
+      method: 'get',
+      url: 'http://localhost:2233/api/items/fakes',
+      responseType: 'stream'
+    });
+    return response.data;
+  } catch (err) {
+    throw new Error(err);
+  }
+}
 
-  slice.forEach((item) => {
-    const key = item.steamMarketHashName;
+// ---------------------------------------------------------------------------------------------
+
+function processSlice(slice) {
+  return slice.reduce((result, item) => {
+    let key = item.steamMarketHashName;
 
     if (!result[key]) {
       result[key] = {
@@ -108,18 +85,15 @@ function processSlice(slice) {
       );
       result[key].auto_delivery_cnt += 1;
     }
-  });
-
-  return result;
+    return result;
+  }, {});
 }
 
-async function processDataInChunks(data) {
-  const chunkSize = 100000;
-  const slices = sliceArray(data, chunkSize);
-  const finalResult = {};
+async function processDataInChunks(stream) {
+  let finalResult = {};
 
-  for (let slice of slices) {
-    const result = processSlice(slice);
+  await objectArrayFromStream(stream, (slice) => {
+    let result = processSlice(slice);
 
     for (let key in result) {
       if (!finalResult[key]) {
@@ -137,26 +111,17 @@ async function processDataInChunks(data) {
         finalResult[key].manual_delivery_cnt += result[key].manual_delivery_cnt;
       }
     }
-  }
-
-  Object.keys(finalResult).forEach((key) => {
-    if (finalResult[key].min_auto_delivery_price === Infinity) {
-      finalResult[key].min_auto_delivery_price = 0;
-    }
-    if (finalResult[key].min_manual_price === Infinity) {
-      finalResult[key].min_manual_price = 0;
-    }
   });
 
   return finalResult;
 }
 
 async function bootstrap() {
-  const externalData = await fetchExternalData();
-  const processedData = await processDataInChunks(externalData);
+  const stream = await fetchFromExternalServiceByChunks();
+  // const stream = await readFileWithFakes();
 
+  let processedData = await processDataInChunks(stream);
   parentPort.postMessage(processedData);
-  console.log('END');
 }
 
 bootstrap();

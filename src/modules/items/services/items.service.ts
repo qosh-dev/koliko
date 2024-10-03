@@ -15,14 +15,16 @@ export default class ItemsService {
     private readonly itemsRepository: ItemsRepository
   ) {
     // generateFakes()
-    // this.itemsRepository.fetchManyItems().then(console.log)
+    this.itemsRepository.fetchManyItems().then(console.log)
   }
 
+
   async getItems2(): Promise<IItem[]> {
-    const cacheKey = `items:many:4`;
-    return this.getFromCacheOrFetch(cacheKey, () =>
-      this.itemsRepository.fetchManyItems()
-    );
+    return this.itemsRepository.fetchManyItems();
+    // const cacheKey = `items:many:4`;
+    // return this.getFromCacheOrFetch(cacheKey, () =>
+    //   this.itemsRepository.fetchManyItems()
+    // );
   }
 
   async getItems(
@@ -55,8 +57,7 @@ export default class ItemsService {
     return items;
   }
 
-
-  async getFakes(){
+  async getFakes() {
     // return [
     //   {
     //     id: 1,
@@ -85,4 +86,5 @@ export default class ItemsService {
     return JSON.parse(jsonData);
   }
 }
+
 
