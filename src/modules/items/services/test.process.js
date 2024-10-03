@@ -37,7 +37,7 @@ async function readFileWithFakes() {
 }
 
 async function fetchFromExternalService() {
-  try {
+  return new Promise(async (resolve, reject) => {
     const response = await axios({
       method: 'get',
       // url: 'https://rs.ok-skins.com/sell/full/730/2G8f5A_usdt.json?Expires=1727957290&OSSAccessKeyId=LTAI5tDg2x1cneB9QAAst1ck&Signature=C1ueKmYikys%2FLaBBB8vnJrXQGH0%3D',
@@ -47,25 +47,21 @@ async function fetchFromExternalService() {
 
     let data = '';
     const stream = response.data;
-    let rawData = ''; // Для накопления данных
+    let rawData = '';
 
-    return new Promise((resolve, reject) => {
-      stream.on('data', (chunk) => {
-        rawData += chunk.toString();
-        data += chunk;
-      });
-
-      stream.on('end', () => {
-        resolve(JSON.parse(data));
-      });
-
-      stream.on('error', (err) => {
-        reject(err);
-      });
+    stream.on('data', (chunk) => {
+      rawData += chunk.toString();
+      data += chunk;
     });
-  } catch (err) {
-    console.error('Ошибка при запросе:', err);
-  }
+
+    stream.on('end', () => {
+      resolve(JSON.parse(data));
+    });
+
+    stream.on('error', (err) => {
+      reject(err);
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------------------------

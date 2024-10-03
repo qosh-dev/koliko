@@ -19,7 +19,7 @@ export default class ItemsService {
   }
 
   async getItems2(): Promise<IItem[]> {
-    const cacheKey = `items:many:2`;
+    const cacheKey = `items:many:4`;
     return this.getFromCacheOrFetch(cacheKey, () =>
       this.itemsRepository.fetchManyItems()
     );
