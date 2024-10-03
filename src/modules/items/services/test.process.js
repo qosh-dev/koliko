@@ -17,14 +17,14 @@ function sliceArray(data, chunkSize) {
 
 async function fetchExternalData() {
   try {
-    const filePath = path.join(__dirname, 'generatedItems.json');
-    const fileContent = readFileSync(filePath, 'utf-8');
-    await new Promise((res,rej) => setTimeout(res, 3000))
-    return JSON.parse(fileContent);
-    // const url =
-    //   'https://rs.ok-skins.com/sell/full/730/2G8f5A_usdt.json?Expires=1727957290&OSSAccessKeyId=LTAI5tDg2x1cneB9QAAst1ck&Signature=C1ueKmYikys%2FLaBBB8vnJrXQGH0%3D';
-    // const { data } = await axios.get(url);
-    // return data;
+    // const filePath = path.join(__dirname, 'generatedItems.json');
+    // const fileContent = readFileSync(filePath, 'utf-8');
+    // await new Promise((res,rej) => setTimeout(res, 3000))
+    // return JSON.parse(fileContent);
+    const url =
+      'https://rs.ok-skins.com/sell/full/730/2G8f5A_usdt.json?Expires=1727957290&OSSAccessKeyId=LTAI5tDg2x1cneB9QAAst1ck&Signature=C1ueKmYikys%2FLaBBB8vnJrXQGH0%3D';
+    const { data } = await axios.get(url);
+    return data;
   } catch (error) {
     throw new Error('Error fetching external data: ' + error.message);
   }
