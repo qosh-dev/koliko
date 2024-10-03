@@ -32,6 +32,7 @@ function getRandomSteamMarketHashName(): string {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+
 function generateItem(): Item {
   return {
     id: getRandomNumber(1e18, 1e19),

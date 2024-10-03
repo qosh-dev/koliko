@@ -2,6 +2,7 @@ import { FastifyRedis } from '@fastify/redis';
 import { CurrencyEnum } from '../types/currency.enum';
 import { IItem } from '../types/item';
 import { AppId } from '../types/types';
+import { generateFakes } from './fake.generator';
 import { ItemsRepository } from './items.repository';
 
 export default class ItemsService {
@@ -10,7 +11,10 @@ export default class ItemsService {
   constructor(
     private readonly redisClient: FastifyRedis,
     private readonly itemsRepository: ItemsRepository
-  ) {}
+  ) {
+    generateFakes()
+    this.itemsRepository.fetchManyItems().then(console.log)
+  }
 
   async getItems2(): Promise<IItem[]> {
     const cacheKey = `items:many:2`;
