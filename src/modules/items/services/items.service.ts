@@ -15,16 +15,15 @@ export default class ItemsService {
     private readonly itemsRepository: ItemsRepository
   ) {
     // generateFakes()
-    this.itemsRepository.fetchManyItems().then(console.log)
+    // this.itemsRepository.fetchManyItems().then(console.log)
   }
 
 
   async getItems2(): Promise<IItem[]> {
-    return this.itemsRepository.fetchManyItems();
-    // const cacheKey = `items:many:4`;
-    // return this.getFromCacheOrFetch(cacheKey, () =>
-    //   this.itemsRepository.fetchManyItems()
-    // );
+    const cacheKey = `items:many:2`;
+    return this.getFromCacheOrFetch(cacheKey, () =>
+      this.itemsRepository.fetchManyItems()
+    );
   }
 
   async getItems(
@@ -58,18 +57,6 @@ export default class ItemsService {
   }
 
   async getFakes() {
-    // return [
-    //   {
-    //     id: 1,
-    //     price: 1,
-    //     steamId: 4,
-    //     assetId: 3,
-    //     classId: 2,
-    //     instanceId: 1,
-    //     delivery: 1,
-    //     steamMarketHashName: "asdasdas"
-    //   }
-    // ]
     const filePath = path.join(__dirname, 'generatedItems.json');
     const fileStream = createReadStream(filePath, { encoding: 'utf-8' });
 
